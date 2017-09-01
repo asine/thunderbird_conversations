@@ -1,0 +1,382 @@
+
+Mozilla Cross-Reference comm-central
+comm-central/ mailnews/ addrbook/ public/ nsIAbCard.idl 	
+Hg Log
+Hg Blame
+Diff file
+Raw file
+view using tree:
+
+Inheritance diagram for nsIAbCard:
+
+Inheritance graph
+
+Collaboration diagram for nsIAbCard:
+
+Collaboration graph
+
+[ nsIAbCard Interface Reference | Graph Legend ]
+
+1 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+2 /* This Source Code Form is subject to the terms of the Mozilla Public
+3  * License, v. 2.0. If a copy of the MPL was not distributed with this
+4  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+5 
+6 #include "nsIAbItem.idl"
+7 
+8 interface nsISimpleEnumerator;
+9 interface nsIVariant;
+10 
+11 [scriptable, uuid(97448252-F189-11d4-A422-001083003D0C)]
+12 interface nsIAbPreferMailFormat {
+13     const unsigned long unknown   = 0;
+14     const unsigned long plaintext = 1;
+15     const unsigned long html      = 2;
+16 };
+17 
+18 /**
+19  * An interface representing an address book card.
+20  *
+21  * The UUID of a card is a composition of a directory ID and a per-directory ID.
+22  * The per-directory ID is reflected in the localId property. If either of these
+23  * properties change, the UUID will change correspondingly.
+24  *
+25  * None of these IDs will be reflected in the property collection. Neither
+26  * nsIAbCard::properties, nsIAbCard::deleteProperty, nor any of the property
+27  * getters and setters are able to interact with these properties.
+28  *
+29  * Fundamentally, a card is a collection of properties. Modifying a property in
+30  * some way on a card does not change the backend used to store the card; the
+31  * directory is required to do make the changes here.
+32  *
+33  * The following are the core properties that are used:
+34  * - Names:
+35  *   - FirstName, LastName
+36  *   - PhoneticFirstName, PhoneticLastName
+37  *   - DisplayName, NickName
+38  *   - SpouseName, FamilyName
+39  * - PrimaryEmail, SecondEmail
+40  * - Home Contact:
+41  *   - HomeAddress, HomeAddress2, HomeCity, HomeState, HomeZipCode, HomeCountry
+42  *   - HomePhone, HomePhoneType
+43  * - Work contact. Same as home, but with `Work' instead of `Home'
+44  * - Other Contact:
+45  *   - FaxNumber, FaxNumberType
+46  *   - PagerNumber, PagerNumberType
+47  *   - CellularNumber, CellularNumberType
+48  * - JobTitle, Department, Company
+49  * - _AimScreenName
+50  * - Dates:
+51  *   - AnniversaryYear, AnniversaryMonth, AnniversaryDay
+52  *   - BirthYear, BirthMonth, BirthDay
+53  * - WebPage1 (work), WebPage2 (home)
+54  * - Custom1, Custom2, Custom3, Custom4
+55  * - Notes
+56  * - Integral properties:
+57  *   - LastModifiedDate
+58  *   - PopularityIndex
+59  *   - PreferMailFormat (see nsIAbPreferMailFormat)
+60  * - Photo properties:
+61  *   - PhotoName
+62  *   - PhotoType
+63  *   - PhotoURI
+64  *
+65  * The contract id for the standard implementation is
+66  * <tt>\@mozilla.org/addressbook/cardproperty;1</tt>.
+67  */
+68 [scriptable, uuid(9bddf024-5178-4097-894e-d84b4ddde101)]
+69 interface nsIAbCard : nsIAbItem {
+70   /**
+71    * The UUID for the nsIAbDirectory containing this card.
+72    *
+73    * The directory considered to contain this card is the directory which
+74    * produced this card (e.g., through nsIAbDirectory::getCardForProperty) or
+75    * the last directory to modify this card, if another directory did so. If the
+76    * last directory to modify this card deleted it, then this card is considered
+77    * unassociated.
+78    *
+79    * If this card is not associated with a directory, this string will be empty.
+80    *
+81    * There is no standardized way to associate a card with multiple directories.
+82    *
+83    * Consumers of this interface outside of directory implementations SHOULD
+84    * NOT, in general, modify this property.
+85    */
+86   attribute AUTF8String directoryId;
+87 
+88   /**
+89    * The per-directory ID of this card.
+90    *
+91    * This property is the second part of the tuple logically representing a card
+92    * UUID. It shares many requirements with that of nsIAbItem::uuid. In
+93    * particular:
+94    * - It MUST be unique (within the scope of its directory).
+95    * - The empty string MUST only be used to indicate that it has not yet been
+96    *   assigned a localId.
+97    * - It is STRONGLY RECOMMENDED that this id is consistent across sessions and
+98    *   that, should the card be deleted, its ids will not be reused.
+99    * - The format of localId is left undefined.
+100    *
+101    * As long as directoryId is not changed, this property SHOULD NOT be changed.
+102    * If directoryId is changed, the new directory MAY choose to reuse the same
+103    * localId if reasonable. However, consumers MUST NOT assume that two cards
+104    * with different directoryIds but the same localId are logically the same
+105    * card.
+106    *
+107    * Similar to directoryId, consumers of cards outside of directory
+108    * implementations SHOULD NOT, in general, modify this property.
+109    */
+110   attribute AUTF8String localId;
+111 
+112   /**
+113    * A list of all the properties that this card has as an enumerator, whose
+114    * members are all nsIProperty objects.
+115    */
+116   readonly attribute nsISimpleEnumerator properties;
+117 
+118   /**
+119    * Returns a property for the given name.
+120    *
+121    * @param name             The case-sensitive name of the property to get.
+122    * @param defaultValue     The value to return if the property does not exist.
+123    * @exception NS_ERROR_NOT_AVAILABLE if the named property does not exist.
+124    * @exception NS_ERROR_CANNOT_CONVERT_DATA if the property cannot be converted
+125    *                                         to the desired type.
+126    */
+127   nsIVariant getProperty(in AUTF8String name, in nsIVariant defaultValue);
+128   /**
+129    * @{
+130    * Returns a property for the given name.  Javascript callers should NOT use these,
+131    * but use getProperty instead. XPConnect will do the type conversion automagically.
+132    *
+133    * These functions convert values in the same manner as the default
+134    * implementation of nsIVariant. Of particular note is that boolean variables
+135    * are converted to integers as in C/C++ (true is a non-zero value), so that
+136    * false will be converted to a string of "0" and not "false."
+137    *
+138    *
+139    * @param name             The case-sensitive name of the property to get.
+140    * @exception NS_ERROR_NOT_AVAILABLE if the named property does not exist.
+141    * @exception NS_ERROR_CANNOT_CONVERT_DATA if the property cannot be converted
+142    *                                         to the desired type.
+143    */
+144   AString getPropertyAsAString(in string name);
+145   AUTF8String getPropertyAsAUTF8String(in string name);
+146   unsigned long getPropertyAsUint32(in string name);
+147   boolean getPropertyAsBool(in string name);
+148 
+149   /** @} */
+150 
+151   /**
+152    * Assigns the given to value to the property of the given name.
+153    *
+154    * Should the property exist, its value will be overwritten. An
+155    * implementation may impose additional semantic constraints for certain
+156    * properties. However, such constraints might not be checked by this method.
+157    *
+158    * @warning A value MUST be convertible to a string; if this convention is not
+159    * followed, consumers of cards may fail unpredictably or return incorrect
+160    * results.
+161    *
+162    * @param name             The case-sensitive name of the property to set.
+163    * @param value            The new value of the property.
+164    */
+165   void setProperty(in AUTF8String name, in nsIVariant value);
+166 
+167   /**
+168    * @{
+169    * Sets a property for the given name.  Javascript callers should NOT use these,
+170    * but use setProperty instead. XPConnect will do the type conversion automagically.
+171    *
+172    * These functions convert values in the same manner as the default
+173    * implementation of nsIVariant.
+174    */
+175   void setPropertyAsAString(in string name, in AString value);
+176   void setPropertyAsAUTF8String(in string name, in AUTF8String value);
+177   void setPropertyAsUint32(in string name, in unsigned long value);
+178   void setPropertyAsBool(in string name, in boolean value);
+179 
+180   /** @} */
+181 
+182   /**
+183    * Deletes the property with the given name.
+184    *
+185    * Some properties may not be deleted. However, the implementation will not
+186    * check this constraint at this method. If such a property is deleted, an
+187    * error may be thrown when the card is modified at the database level.
+188    *
+189    * @param name             The case-sensitive name of the property to set.
+190    */
+191   void deleteProperty(in AUTF8String name);
+192  
+193   /**
+194    * @{
+195    * These properties are shorthand for getProperty and setProperty.
+196    */
+197   attribute AString firstName;
+198   attribute AString lastName;
+199   attribute AString displayName;
+200   attribute AString primaryEmail;
+201   /** @} */
+202 
+203   /**
+204    * Determines whether or not a card has the supplied email address in either
+205    * of its PrimaryEmail or SecondEmail attributes.
+206    *
+207    * Note: This function is likely to be temporary whilst we work out proper
+208    * APIs for multi-valued attributes in bug 118665.
+209    *
+210    * @param  aEmailAddress The email address to attempt to match against.
+211    * @return               True if aEmailAddress matches any of the email
+212    *                       addresses stored in the card.
+213    */
+214   boolean hasEmailAddress(in AUTF8String aEmailAddress);
+215 
+216   /**
+217    * Translates a card into a specific format.
+218    * The following types are supported:
+219    * - base64xml
+220    * - xml
+221    * - vcard
+222    *
+223    * @param  aType          The type of item to translate the card into.
+224    * @return                A string containing the translated card.
+225    * @exception NS_ERROR_ILLEGAL_VALUE if we do not recognize the type.
+226    */
+227   AUTF8String translateTo(in AUTF8String aType);
+228 
+229   /**
+230    * Translates a card from the specified format
+231    */
+232   //void translateFrom(in AUTF8String aType, in AUTF8String aData);
+233 
+234   /** 
+235    * Generate a phonetic name from the card, using the firstName and lastName
+236    * values.
+237    *
+238    * @param  aLastNameFirst  Set to True to put the last name before the first.
+239    * @return                 A string containing the generated phonetic name.
+240    */
+241   AString generatePhoneticName(in boolean aLastNameFirst);
+242 
+243   /**
+244    * Generate a chat name from the card, containing the value of the
+245    * first non-empty chat field.
+246    *
+247    * @return                 A string containing the generated chat name.
+248    */
+249   AString generateChatName();
+250 
+251   /**
+252    * This function will copy all values from one card to another.
+253    *
+254    * @param  srcCard         The source card to copy values from.
+255    */
+256   void copy(in nsIAbCard aSrcCard);
+257 
+258   /**
+259    * Returns true if this card is equal to the other card.
+260    *
+261    * The default implementation defines equal as this card pointing to the
+262    * same object as @arg aCard; another implementation defines it as equality of
+263    * properties and values.
+264    *
+265    * @warning The exact nature of equality is still undefined, and actual
+266    *          results may not match theoretical results. Most notably, the code
+267    *          <tt>a.equals(b) == b.equals(a)</tt> might not return true. In
+268    *          particular, calling equals on cards from different address books
+269    *          may return inaccurate results.
+270    *          
+271    *
+272    * @return                 Equality, as defined above.
+273    * @param  aCard           The card to compare against.
+274    */
+275   boolean equals(in nsIAbCard aCard);
+276 
+277   // PROPERTIES TO BE DELETED AS PART OF REWRITE
+278 
+279   attribute boolean isMailList;
+280   /**
+281    * If isMailList is true then mailListURI
+282    * will contain the URI of the associated
+283    * mail list
+284    */
+285   attribute string mailListURI;
+286 };
+287 
+288 %{C++
+289 // A nice list of properties for the benefit of C++ clients
+290 #define kFirstNameProperty          "FirstName"
+291 #define kLastNameProperty           "LastName"
+292 #define kDisplayNameProperty        "DisplayName"
+293 #define kNicknameProperty           "NickName"
+294 #define kPriEmailProperty           "PrimaryEmail"
+295 #define kPreferMailFormatProperty   "PreferMailFormat"
+296 #define kLastModifiedDateProperty   "LastModifiedDate"
+297 #define kPopularityIndexProperty    "PopularityIndex"
+298 
+299 #define kPhoneticFirstNameProperty  "PhoneticFirstName"
+300 #define kPhoneticLastNameProperty   "PhoneticLastName"
+301 #define kSpouseNameProperty         "SpouseName"
+302 #define kFamilyNameProperty         "FamilyName"
+303 #define k2ndEmailProperty           "SecondEmail"
+304 
+305 #define kHomeAddressProperty        "HomeAddress"
+306 #define kHomeAddress2Property       "HomeAddress2"
+307 #define kHomeCityProperty           "HomeCity"
+308 #define kHomeStateProperty          "HomeState"
+309 #define kHomeZipCodeProperty        "HomeZipCode"
+310 #define kHomeCountryProperty        "HomeCountry"
+311 #define kHomeWebPageProperty        "WebPage2"
+312 
+313 #define kWorkAddressProperty        "WorkAddress"
+314 #define kWorkAddress2Property       "WorkAddress2"
+315 #define kWorkCityProperty           "WorkCity"
+316 #define kWorkStateProperty          "WorkState"
+317 #define kWorkZipCodeProperty        "WorkZipCode"
+318 #define kWorkCountryProperty        "WorkCountry"
+319 #define kWorkWebPageProperty        "WebPage1"
+320 
+321 #define kHomePhoneProperty          "HomePhone"
+322 #define kHomePhoneTypeProperty      "HomePhoneType"
+323 #define kWorkPhoneProperty          "WorkPhone"
+324 #define kWorkPhoneTypeProperty      "WorkPhoneType"
+325 #define kFaxProperty                "FaxNumber"
+326 #define kFaxTypeProperty            "FaxNumberType"
+327 #define kPagerTypeProperty          "PagerNumberType"
+328 #define kPagerProperty              "PagerNumber"
+329 #define kCellularProperty           "CellularNumber"
+330 #define kCellularTypeProperty       "CellularNumberType"
+331 
+332 #define kJobTitleProperty           "JobTitle"
+333 #define kDepartmentProperty         "Department"
+334 #define kCompanyProperty            "Company"
+335 #define kScreenNameProperty         "_AimScreenName"
+336 #define kCustom1Property            "Custom1"
+337 #define kCustom2Property            "Custom2"
+338 #define kCustom3Property            "Custom3"
+339 #define kCustom4Property            "Custom4"
+340 #define kNotesProperty              "Notes"
+341 
+342 #define kGtalkProperty              "_GoogleTalk"
+343 #define kAIMProperty                "_AimScreenName"
+344 #define kYahooProperty              "_Yahoo"
+345 #define kSkypeProperty              "_Skype"
+346 #define kQQProperty                 "_QQ"
+347 #define kMSNProperty                "_MSN"
+348 #define kICQProperty                "_ICQ"
+349 #define kXMPPProperty               "_JabberId"
+350 #define kIRCProperty                "_IRC"
+351 
+352 #define kAnniversaryYearProperty    "AnniversaryYear"
+353 #define kAnniversaryMonthProperty   "AnniversaryMonth"
+354 #define kAnniversaryDayProperty     "AnniversaryDay"
+355 #define kBirthYearProperty          "BirthYear"
+356 #define kBirthMonthProperty         "BirthMonth"
+357 #define kBirthDayProperty           "BirthDay"
+358 %}
+359 
+
+view http://hg.mozilla.org/comm-central/rev/
+/mailnews/addrbook/public/nsIAbCard.idl
+
