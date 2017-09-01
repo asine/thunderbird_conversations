@@ -420,7 +420,18 @@ ContactFromAB.prototype = {
   
   get extWork () {
     if(this._card){
-      return this._card.getProperty("Company","")+" "+this._card.getProperty("Department","");
+      let company=this._card.getProperty("Company","");
+      let depart=this._card.getProperty("Department","");
+      let workTel=this._card.getProperty("WorkPhone","");
+      let rtn="";
+      if(company)
+        rtn=company;
+      if(depart)
+        rtn=rtn+" "+depart;
+      if(workTel)
+        rtn=rtn+" - "+workTel;
+      return rtn;
+      //return this._card.getProperty("Company","")+" "+this._card.getProperty("Department","");
        //return card.Company+" "+card.Department;
     }else{
       return "";
