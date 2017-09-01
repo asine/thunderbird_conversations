@@ -194,6 +194,7 @@ let ContactMixIn = {
         : ("background-color :" + this.color)),
       writeBr: aIsDetail,
       star: aIsDetail && hasCard,
+      extWork:sanitize(this.extWork);
     };
     return data;
   },
@@ -415,6 +416,14 @@ ContactFromAB.prototype = {
         return photoURI;
     }
     return defaultPhotoURI;
+  },
+  
+  get extWork(){
+    if(this._card){
+       return card.Company+" "+card.Department;
+    }else{
+      return "";
+    }
   },
 }
 
